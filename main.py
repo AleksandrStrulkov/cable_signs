@@ -72,7 +72,7 @@ def force_wrap(text, max_chars=25):
     words = text.strip().split()
     lines = []
     current_line = ""
-
+    
     for word in words:
         spacer = " " if current_line else ""
         test_line = current_line + spacer + word
@@ -81,14 +81,16 @@ def force_wrap(text, max_chars=25):
         else:
             if current_line:
                 lines.append(current_line)
-            # Слово слишком длинное — режем
+            # Если слово слишком длинное — режем
             while len(word) > max_chars:
                 lines.append(word[:max_chars])
                 word = word[max_chars:]
             current_line = word
+    
     if current_line:
         lines.append(current_line)
-    return lines[:3]        
+    
+    return lines[:3]  # максимум 3 строки
 
 
 # Кэшируем шрифт, чтобы не загружать каждый раз
@@ -109,7 +111,7 @@ def get_pil_font(font_size):
         _font_cache[key] = font
     return _font_cache[key]
 
-def wrap_text(text, max_width_mm, font_size, max_lines=3):
+""" def wrap_text(text, max_width_mm, font_size, max_lines=3):
     if not text.strip():
         return [""]
     
@@ -149,13 +151,13 @@ def wrap_text(text, max_width_mm, font_size, max_lines=3):
 
     print(f"✂️ Разбивка: '{text}' -> {lines}")   
 
-    return lines[:max_lines]
+    return lines[:max_lines] """
 
 
 class CableLabelApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Генератор этикеток для кабелей")
+        self.root.title("Генератор обозначений для для маркировки кабеля")
         self.root.geometry("600x400")
 
         self.input_file = tk.StringVar()
@@ -313,11 +315,11 @@ class CableLabelApp:
                 max_sub_lines = 3
 
             self.draw_triangle_aligned(c, center_x, y_base, is_upside_down, main_text, sub_text,
-                                   main_font, sub_font, max_sub_lines)
+                                   main_font, sub_font, max_sub_lines, side)
             count += 1
 
     def draw_triangle_aligned(self, c, center_x, y_base, upside_down, main_text, sub_text,
-                          main_font_size, sub_font_size, max_sub_lines):
+                          main_font_size, sub_font_size, max_sub_lines, side):
         base = TRIANGLE_BASE
         height = TRIANGLE_HEIGHT
 
@@ -363,21 +365,34 @@ class CableLabelApp:
             y_system = base_y + dy_system
             y_track = base_y + dy_track
 
-        # --- ОСНОВНОЙ ТЕКСТ ---
+                # --- Основной текст (system или cable) ---
+        # Начальный размер шрифта
         fs = main_font_size
-        wrapped_main = force_wrap(main_text, max_chars=28)
 
-        while len(wrapped_main) > 3 and fs > 10:
-            fs -= 1
-            wrapped_main = force_wrap(main_text, max_chars=28 + (14 - fs) * 2)
+        # Максимальная длина строки в символах
+        if side == 'back':  # Это cable
+            max_chars = 26
+        else:  # Это system
+            max_chars = 20
 
+        # Разбиваем текст
+        lines = force_wrap(main_text, max_chars)
+
+        # Принудительно уменьшаем шрифт, пока строк больше 3
+        while len(lines) > 3 and fs > 10:
+            fs -= 0.5  # плавное уменьшение
+            larger_max_chars = max_chars + int((main_font_size - fs) * 2.5)
+            lines = force_wrap(main_text, larger_max_chars)
+
+        # Рисуем все строки
         c.setFont("Times-Bold", fs)
-        for j, line in enumerate(wrapped_main):
-            try:
-                tw = pdfmetrics.stringWidth(line, "Times-Bold", fs)
-            except:
-                tw = len(line) * fs * 0.6
-            c.drawString(center_x - tw / 2, y_system - j * (fs * 1.5), line)
+        line_height = fs * 1.4  # расстояние между строками
+        for j, line in enumerate(lines):
+            # Грубая оценка ширины: символ ≈ 0.6 * размер_шрифта
+            estimated_width = len(line) * fs * 0.6
+            x_pos = center_x - estimated_width / 2
+            y_pos = y_system - j * line_height
+            c.drawString(x_pos, y_pos, line)
 
         # --- ПОДЗАГОЛОВОК ---
         wrapped_sub = force_wrap(sub_text, max_chars=30)[:2]
