@@ -67,6 +67,20 @@ def split_cable_text(text):
         return [words[0], " ".join(words[1:])]
 
 
+def find_column(headers, *names):
+    """
+    Ищет первый столбец по списку возможных имён.
+    :param headers: список заголовков Excel
+    :param names: возможные названия столбца
+    :return: индекс столбца или None
+    """
+    lower_headers = [h.lower() if h else "" for h in headers]
+    for name in names:
+        if name.lower() in lower_headers:
+            return lower_headers.index(name.lower())
+    return None
+
+
 # === ОСНОВНОЙ КЛАСС ПРИЛОЖЕНИЯ ===
 class CableLabelApp:
     def __init__(self, root):
@@ -90,7 +104,14 @@ class CableLabelApp:
 
         ttk.Label(frame, text="Генератор бирок под маркировку трасс кабеля", font=("Arial", 14, "bold")).grid(
             row=0, column=0, columnspan=3, pady=10)
-
+        ttk.Label(frame, text="1. Создайте файл excel с колонками:\n"
+                              "_______________________________________\n"
+                              "|Подсистема|Трасса|Кабель|Длина|Кол-во|\n "
+                              "_______________________________________\n"
+                              "Где 'кол-во' — количество бирок на трассу кабеля.\n"
+                              "2. Загрузите файл excel и выберите папку для сохранения PDF.\n"
+                              "3. Нажмите 'Создать PDF'.",
+                  font=("Arial", 10, "bold")).grid(row=0, column=0, columnspan=3, pady=10)
         ttk.Label(frame, text="Excel файл:").grid(row=1, column=0, sticky="w", pady=5)
         ttk.Entry(frame, textvariable=self.input_file, width=40).grid(row=1, column=1, padx=5, pady=5)
         ttk.Button(frame, text="Обзор", command=self.browse_input).grid(row=1, column=2, padx=5)
@@ -131,11 +152,25 @@ class CableLabelApp:
             headers = [cell.value for cell in ws[1]]
 
             # Поиск индексов столбцов
-            system_idx = headers.index("system")
-            track_idx = headers.index("track")
-            cable_idx = headers.index("cable")
-            length_idx = headers.index("lenght")
-            quantity_idx = headers.index("quantity")
+            system_idx = find_column(headers, "system", "Подсистема", "Система")
+            track_idx = find_column(headers, "track", "Трасса", "Обозначение")
+            cable_idx = find_column(headers, "cable", "Кабель")
+            length_idx = find_column(headers, "length", "Длина")
+            quantity_idx = find_column(headers, "quantity", "Количество", "Кол-во")
+            list_idx = [system_idx, track_idx, cable_idx, length_idx, quantity_idx]
+
+            if None in (system_idx, track_idx, cable_idx, length_idx, quantity_idx):
+                if None in list_idx:
+                    for i, idx in enumerate(list_idx):
+                        if idx is None:
+                            list_idx[i] = f"{i+1} (не найден)"
+                        elif idx is not None:
+                            list_idx[i] = f"{i+1} ({headers[idx]})"
+                messagebox.showerror("Ошибка", "Не найдены необходимые столбцы!"
+                                               "\nПроверьте Excel файл и повторите попытку.\n"
+                                               f"\nНайденные столбцы:\n {list_idx}\n"
+                                               f"Не забудьте сохранить файл после редактирования!")
+                return
 
             data = []
             for row in ws.iter_rows(min_row=2, values_only=True):
@@ -192,12 +227,14 @@ class CableLabelApp:
         :param start_index: с какого элемента начинать
         :param side: 'front' или 'back'
         """
-        col_step = TRIANGLE_BASE / 2  # Шаг между центрами треугольников
-        x_centers = [45*mm, 75*mm, 105*mm, 135*mm, 165*mm]  # Центры X для 5 треугольников
-        Y_START = 76.5 * mm  # Начальная координата Y для первого ряда
+        col_step = TRIANGLE_BASE / 2
+        x_centers_original = [45 * mm, 75 * mm, 105 * mm, 135 * mm, 165 * mm]
+        Y_START = 76.5 * mm
 
-        shift_x = PRINTER_OFFSET_X if side == 'back' else 0  # Компенсация принтера
+        # Компенсация принтера
+        shift_x = PRINTER_OFFSET_X * mm if side == 'back' else 0
 
+        # Для обратной стороны — отзеркаливаем X координаты
         count = 0
         for i in range(start_index, min(start_index + MAX_COLS * MAX_ROWS, len(data))):
             item = data[i]
@@ -207,28 +244,34 @@ class CableLabelApp:
             if row >= MAX_ROWS:
                 break
 
-            center_x = x_centers[col] + shift_x
+            # Базовая координата X (для лицевой стороны)
+            center_x_base = x_centers_original[col]
+
+            # Для обратной стороны — отзеркаливаем относительно центра листа
+            if side == 'back':
+                center_x = PAGE_WIDTH - center_x_base + shift_x
+            else:
+                center_x = center_x_base + shift_x
+
             y_base = Y_START + row * TRIANGLE_HEIGHT
-            is_upside_down = col % 2 == 1  # Чередование: 1,3 — перевёрнутые
+            is_upside_down = col % 2 == 1
 
             if side == 'front':
                 main_text = item["system"]
                 sub_text = item["track"]
-                main_font_size = FONT_SYSTEM
-                sub_font_size = FONT_TRACK
+                main_font = FONT_SYSTEM
+                sub_font = FONT_TRACK
             else:
                 main_text = item["cable"]
                 raw_length = str(item["length"]).strip()
-                # Форматируем: L=128 м
-                if raw_length.replace('.', '').isdigit():
-                    sub_text = f"L={raw_length} м"
-                else:
-                    sub_text = raw_length
-                main_font_size = FONT_CABLE
-                sub_font_size = FONT_LENGTH
+                sub_text = f"L={raw_length} м" if raw_length.replace('.', '').isdigit() else raw_length
+                main_font = FONT_CABLE
+                sub_font = FONT_LENGTH
 
-            self.draw_triangle(c, center_x, y_base, is_upside_down, main_text, sub_text,
-                               main_font_size, sub_font_size, side)
+            self.draw_triangle(
+                c, center_x, y_base, is_upside_down, main_text, sub_text,
+                main_font, sub_font, side
+                )
 
             count += 1
 
@@ -246,6 +289,9 @@ class CableLabelApp:
         :param sub_font_size: размер шрифта подзаголовка
         :param side: 'front' или 'back'
         """
+        if not main_text.strip() and not sub_text.strip():
+            return
+
         base = TRIANGLE_BASE
         height = TRIANGLE_HEIGHT
         x_left = center_x - base / 2
@@ -309,7 +355,6 @@ class CableLabelApp:
             else:
                 fs = FONT_SYSTEM  # 18
 
-
         # Ограничиваем минимальным размером
         if fs < MIN_FONT_SIZE:
             fs = MIN_FONT_SIZE
@@ -337,12 +382,38 @@ class CableLabelApp:
 
         # --- ПОДЗАГОЛОВОК (track или length) ---
         c.setFont("Times-Bold", sub_font_size)
-        wrapped_sub = [sub_text] if len(sub_text) < 30 else [sub_text[:30], sub_text[30:]]
-        wrapped_sub = wrapped_sub[:2]
+        # Для track на лицевой стороне — уменьшаем шрифт при длинной строке
+        track_font_size = 12 if (side == 'front' and len(sub_text) >= 20) else sub_font_size
 
-        for j, line in enumerate(wrapped_sub):
-            tw = pdfmetrics.stringWidth(line, "Times-Bold", sub_font_size)
-            c.drawString(center_x - tw / 2, y_sub - j * (sub_font_size * 1.4), line)
+        # Разбиваем текст на строки (максимум 2)
+        max_width = base * 0.9
+        lines_sub = []
+        words = sub_text.split()
+        line = ""
+        for word in words:
+            test = f"{line} {word}".strip()
+            try:
+                w = pdfmetrics.stringWidth(test, "Times-Bold", track_font_size)
+            except:
+                w = len(test) * track_font_size * 0.6
+            if w <= max_width:
+                line = test
+            else:
+                if line:
+                    lines_sub.append(line)
+                line = word
+        if line:
+            lines_sub.append(line)
+        lines_sub = lines_sub[:2]
+
+        c.setFont("Times-Bold", track_font_size)
+        line_height = track_font_size * 1.4
+        for j, line in enumerate(lines_sub):
+            try:
+                tw = pdfmetrics.stringWidth(line, "Times-Bold", track_font_size)
+            except:
+                tw = len(line) * track_font_size * 0.6
+            c.drawString(center_x - tw / 2, y_sub - j * line_height, line)
 
         c.restoreState()
 
