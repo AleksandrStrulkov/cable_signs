@@ -1,4 +1,5 @@
 import os
+import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import openpyxl
@@ -7,6 +8,15 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+
+
+# Указываем Python, где искать Tcl/Tk внутри виртуального окружения
+base_prefix = getattr(sys, 'base_prefix', sys.prefix)  # Получаем путь к окружению
+tcl_dir = os.path.join(base_prefix, 'tcl')
+
+# Важно: задаем переменные окружения ДО создания окна Tk
+os.environ["TCL_LIBRARY"] = os.path.join(tcl_dir, "tcl8.6")
+os.environ["TK_LIBRARY"] = os.path.join(tcl_dir, "tk8.6")
 
 
 # === РЕГИСТРАЦИЯ ШРИФТА ===

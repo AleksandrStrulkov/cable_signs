@@ -1,10 +1,27 @@
-[tool.poetry]
-name = "cable-signs"
+[project]
+name = "cable_signs"
 version = "0.1.0"
-description = ""
+description = "Генератор бирок"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=2.3.2",
+    "reportlab>=4.4.4",
+    "openpyxl>=3.1.5",
+    "pillow>=11.3.0",
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "cable_signs"
+version = "0.1.0"
+description = "Генератор бирок"
 authors = ["AkeksandrStrulkov <astrulkov@yandex.ru>"]
 readme = "README.md"
-package-mode = false
+package-mode = false  # Ключевая настройка!
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -12,8 +29,3 @@ pandas = "^2.3.2"
 reportlab = "^4.4.4"
 openpyxl = "^3.1.5"
 pillow = "^11.3.0"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
