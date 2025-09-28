@@ -9,7 +9,6 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-
 # Указываем Python, где искать Tcl/Tk внутри виртуального окружения
 base_prefix = getattr(sys, 'base_prefix', sys.prefix)  # Получаем путь к окружению
 tcl_dir = os.path.join(base_prefix, 'tcl')
@@ -17,7 +16,6 @@ tcl_dir = os.path.join(base_prefix, 'tcl')
 # Важно: задаем переменные окружения ДО создания окна Tk
 os.environ["TCL_LIBRARY"] = os.path.join(tcl_dir, "tcl8.6")
 os.environ["TK_LIBRARY"] = os.path.join(tcl_dir, "tk8.6")
-
 
 # === РЕГИСТРАЦИЯ ШРИФТА ===
 # Попробуем загрузить Times New Roman Bold для красивого шрифта
@@ -27,22 +25,21 @@ try:
 except:
     pass  # Если не найден — используем fallback (стандартный жирный шрифт)
 
-
 # === ГЛОБАЛЬНЫЕ ПАРАМЕТРЫ ===
-TRIANGLE_BASE = 60 * mm        # Ширина основания треугольника
-TRIANGLE_HEIGHT = 49 * mm      # Высота треугольника
-PAGE_WIDTH, PAGE_HEIGHT = A4   # Размер листа A4
+TRIANGLE_BASE = 60 * mm  # Ширина основания треугольника
+TRIANGLE_HEIGHT = 49 * mm  # Высота треугольника
+PAGE_WIDTH, PAGE_HEIGHT = A4  # Размер листа A4
 
-MAX_COLS = 5                   # Количество треугольников в ряду
-MAX_ROWS = 5                   # Количество рядов
+MAX_COLS = 5  # Количество треугольников в ряду
+MAX_ROWS = 5  # Количество рядов
 
-FONT_SYSTEM = 18               # Размер шрифта для system
-FONT_TRACK = 14                # Размер шрифта для track
-FONT_CABLE = 16                # Размер шрифта для cable (чуть больше)
-FONT_LENGTH = 14               # Размер шрифта для length
+FONT_SYSTEM = 18  # Размер шрифта для system
+FONT_TRACK = 14  # Размер шрифта для track
+FONT_CABLE = 16  # Размер шрифта для cable (чуть больше)
+FONT_LENGTH = 14  # Размер шрифта для length
 
-MIN_FONT_SIZE = 10             # Минимальный размер шрифта при уменьшении
-PRINTER_OFFSET_X = 0.0 * mm    # Компенсация смещения принтера на обратной стороне
+MIN_FONT_SIZE = 10  # Минимальный размер шрифта при уменьшении
+PRINTER_OFFSET_X = 0.0 * mm  # Компенсация смещения принтера на обратной стороне
 
 
 # === ФУНКЦИЯ: РАЗДЕЛЕНИЕ ТЕКСТА CABLE НА 2 СТРОКИ ===
@@ -65,6 +62,31 @@ def split_cable_text(text):
         return [w[:mid], w[mid:]]
     else:
         return [words[0], " ".join(words[1:])]
+
+
+# === ФУНКЦИЯ: РАЗДЕЛЕНИЕ ТЕКСТА CABLE НА 2 СТРОКИ ===
+# def split_track_text(text):
+#     """
+#     Разделяет текст из колонки 'track' на 2 строки:
+#     - Первая строка: первое слово
+#     - Вторая строка: всё остальное
+#     Если одно слово — делит пополам.
+#     Пример: "1ШСУ14-БП1/ТШМ-60.01" → ["1ШСУ14-БП1", "ТШМ-60.01"]
+#     """
+#     if not text or not text.strip():
+#         return ["", ""]
+#     words = text.strip().split("/")
+#     if len(words) == 0:
+#         return ["", ""]
+#     elif len(words) == 1:
+#         w = words[0]
+#         mid = len(w) // 2
+#         return [w[:mid], w[mid:]]
+#     else:
+#         return [words[0] + "/", " ".join(words[1:])]
+
+
+# print(split_track_text("1ШСУ14-БП1hhfgxxhrte/sfgnfxftТШМ-60.01"))
 
 
 def find_column(headers, *names):
@@ -103,15 +125,18 @@ class CableLabelApp:
         frame.pack(fill="both", expand=True)
 
         ttk.Label(frame, text="Генератор бирок под маркировку трасс кабеля", font=("Arial", 14, "bold")).grid(
-            row=0, column=0, columnspan=3, pady=10)
-        ttk.Label(frame, text="1. Создайте файл excel с колонками:\n"
-                              "_______________________________________\n"
-                              "|Подсистема|Трасса|Кабель|Длина|Кол-во|\n "
-                              "_______________________________________\n"
-                              "Где 'кол-во' — количество бирок на трассу кабеля.\n"
-                              "2. Загрузите файл excel и выберите папку для сохранения PDF.\n"
-                              "3. Нажмите 'Создать PDF'.",
-                  font=("Arial", 10, "bold")).grid(row=0, column=0, columnspan=3, pady=10)
+                row=0, column=0, columnspan=3, pady=10
+        )
+        ttk.Label(
+                frame, text="1. Создайте файл excel с колонками:\n"
+                            "_______________________________________\n"
+                            "|Подсистема|Трасса|Кабель|Длина|Кол-во|\n "
+                            "_______________________________________\n"
+                            "Где 'кол-во' — количество бирок на трассу кабеля.\n"
+                            "2. Загрузите файл excel и выберите папку для сохранения PDF.\n"
+                            "3. Нажмите 'Создать PDF'.",
+                font=("Arial", 10, "bold")
+        ).grid(row=0, column=0, columnspan=3, pady=10)
         ttk.Label(frame, text="Excel файл:").grid(row=1, column=0, sticky="w", pady=5)
         ttk.Entry(frame, textvariable=self.input_file, width=40).grid(row=1, column=1, padx=5, pady=5)
         ttk.Button(frame, text="Обзор", command=self.browse_input).grid(row=1, column=2, padx=5)
@@ -163,13 +188,15 @@ class CableLabelApp:
                 if None in list_idx:
                     for i, idx in enumerate(list_idx):
                         if idx is None:
-                            list_idx[i] = f"{i+1} (не найден)"
+                            list_idx[i] = f"{i + 1} (не найден)"
                         elif idx is not None:
-                            list_idx[i] = f"{i+1} ({headers[idx]})"
-                messagebox.showerror("Ошибка", "Не найдены необходимые столбцы!"
-                                               "\nПроверьте Excel файл и повторите попытку.\n"
-                                               f"\nНайденные столбцы:\n {list_idx}\n"
-                                               f"Не забудьте сохранить файл после редактирования!")
+                            list_idx[i] = f"{i + 1} ({headers[idx]})"
+                messagebox.showerror(
+                        "Ошибка", "Не найдены необходимые столбцы!"
+                                  "\nПроверьте Excel файл и повторите попытку.\n"
+                                  f"\nНайденные столбцы:\n {list_idx}\n"
+                                  f"Не забудьте сохранить файл после редактирования!"
+                )
                 return
 
             data = []
@@ -183,12 +210,14 @@ class CableLabelApp:
                 except:
                     qty = 1
                 for _ in range(qty):
-                    data.append({
-                        "system": system,
-                        "track": track,
-                        "cable": cable,
-                        "length": length_val
-                    })
+                    data.append(
+                            {
+                                    "system": system,
+                                    "track": track,
+                                    "cable": cable,
+                                    "length": length_val
+                            }
+                    )
 
             output_path = os.path.join(output_dir, "cable_labels.pdf")
             c = canvas.Canvas(output_path, pagesize=A4)
@@ -269,14 +298,16 @@ class CableLabelApp:
                 sub_font = FONT_LENGTH
 
             self.draw_triangle(
-                c, center_x, y_base, is_upside_down, main_text, sub_text,
-                main_font, sub_font, side
-                )
+                    c, center_x, y_base, is_upside_down, main_text, sub_text,
+                    main_font, sub_font, side
+            )
 
             count += 1
 
-    def draw_triangle(self, c, center_x, y_base, upside_down, main_text, sub_text,
-                      main_font_size, sub_font_size, side):
+    def draw_triangle(
+            self, c, center_x, y_base, upside_down, main_text, sub_text,
+            main_font_size, sub_font_size, side
+    ):
         """
         Рисует один треугольник с текстом.
         :param c: canvas
@@ -289,6 +320,13 @@ class CableLabelApp:
         :param sub_font_size: размер шрифта подзаголовка
         :param side: 'front' или 'back'
         """
+        # 🔍 Отладка ширины
+        test_text = "ШЩЖДМФЩЮДП"
+        try:
+            w = pdfmetrics.stringWidth(test_text, "Times-Bold", 12)
+            print(f"📏 stringWidth работает: '{test_text}' → {w:.1f} pt")
+        except Exception as e:
+            print(f"❌ stringWidth НЕ РАБОТАЕТ: {e}")
         if not main_text.strip() and not sub_text.strip():
             return
 
@@ -306,15 +344,17 @@ class CableLabelApp:
         # Рисуем контур
         c.setLineWidth(5.0)
         c.setStrokeColorRGB(0, 0, 0)
-        c.lines([
-            (points[0][0], points[0][1], points[1][0], points[1][1]),
-            (points[1][0], points[1][1], points[2][0], points[2][1]),
-            (points[2][0], points[2][1], points[0][0], points[0][1])
-        ])
+        c.lines(
+                [
+                        (points[0][0], points[0][1], points[1][0], points[1][1]),
+                        (points[1][0], points[1][1], points[2][0], points[2][1]),
+                        (points[2][0], points[2][1], points[0][0], points[0][1])
+                ]
+        )
 
         # Относительные смещения текста от основания
         dy_main = height * 0.35  # Основной текст ближе к центру
-        dy_sub = height * 0.1    # Подзаголовок у основания
+        dy_sub = height * 0.1  # Подзаголовок у основания
 
         c.saveState()
 
@@ -367,7 +407,7 @@ class CableLabelApp:
         else:
             y_positions = [y_main]
 
-        print(f"🔧 [DEBUG] side={side}, main_text='{main_text}', len={len(main_text)}, fs={fs}")       
+        # print(f"🔧 [DEBUG] side={side}, main_text='{main_text}', len={len(main_text)}, fs={fs}")
 
         c.setFont("Times-Bold", fs)
         for j, line in enumerate(lines):
@@ -381,39 +421,92 @@ class CableLabelApp:
             c.drawString(x_pos, y_pos, line)
 
         # --- ПОДЗАГОЛОВОК (track или length) ---
-        c.setFont("Times-Bold", sub_font_size)
-        # Для track на лицевой стороне — уменьшаем шрифт при длинной строке
-        track_font_size = 12 if (side == 'front' and len(sub_text) >= 20) else sub_font_size
+        max_chars_per_line = 28  # Подобрано под 60 мм и font=14
+        if side == 'front' and len(sub_text) == 18:
+            track_font_size = 13.5
+            max_chars_per_line = 33  # При меньшем шрифте — можно больше символов
+        elif side == 'front' and len(sub_text) == 19:
+            track_font_size = 13
+            max_chars_per_line = 33  # При меньшем шрифте — можно больше символов
+        elif side == 'front' and len(sub_text) >= 20:
+            track_font_size = 11.5
+            max_chars_per_line = 39 # При меньшем шрифте — можно больше символов
+        else:
+            track_font_size = sub_font_size  # 14
 
-        # Разбиваем текст на строки (максимум 2)
-        max_width = base * 0.9
-        lines_sub = []
-        words = sub_text.split()
-        line = ""
-        for word in words:
-            test = f"{line} {word}".strip()
-            try:
-                w = pdfmetrics.stringWidth(test, "Times-Bold", track_font_size)
-            except:
-                w = len(test) * track_font_size * 0.6
-            if w <= max_width:
-                line = test
-            else:
-                if line:
-                    lines_sub.append(line)
-                line = word
-        if line:
-            lines_sub.append(line)
-        lines_sub = lines_sub[:2]
+        # Разбивка на 2 строки по длине
+        max_len = 30 if track_font_size > 12 else 38
+        line1 = sub_text[:max_len].strip()
+        line2 = sub_text[max_len:max_len * 2].strip()
 
+        lines = []
+        if line1:
+            lines.append(line1)
+        if line2:
+            lines.append(line2)
+
+        # Устанавливаем шрифт
         c.setFont("Times-Bold", track_font_size)
-        line_height = track_font_size * 1.4
-        for j, line in enumerate(lines_sub):
-            try:
-                tw = pdfmetrics.stringWidth(line, "Times-Bold", track_font_size)
-            except:
-                tw = len(line) * track_font_size * 0.6
-            c.drawString(center_x - tw / 2, y_sub - j * line_height, line)
+
+        line_height = track_font_size * 1.5
+
+        for j, line in enumerate(lines):
+            if not line.strip():
+                continue
+
+        # ⚡️ Реальная ширина через stringWidth
+        try:
+            tw = pdfmetrics.stringWidth(line, "Times-Bold", track_font_size)
+            # print(f"📏 Точная ширина: '{line}' → {tw:.1f} pt")
+        except:
+            # Fallback: улучшенная оценка с коэффициентом для кириллицы
+            # Коэффициент 0.65 вместо 0.55 — лучше для широких букв
+            estimated_width_per_char = {
+                            'Ш': 1.2, 'Щ': 1.2, 'Ж': 1.15, 'Д': 1.1, 'П': 1.05,
+                            'А': 0.9, 'В': 0.95, 'Е': 0.9, 'К': 0.95, 'Х': 0.9
+                    }
+            total_width = 0
+            for char in line.upper():
+                total_width += estimated_width_per_char.get(char, 1.0)
+            tw = total_width * track_font_size * 0.58
+
+        x_pos = center_x - tw / 2
+        y_pos = y_sub - j * line_height
+        c.drawString(x_pos, y_pos, line)
+
+        # -----------------------------------------------------------------
+        # Для track на лицевой стороне — уменьшаем шрифт при длинной строке
+        # track_font_size = 12 if (side == 'front' and len(sub_text) >= 20) else sub_font_size
+        #
+        # # Разбиваем текст на строки (максимум 2)
+        # max_width = base * 0.9
+        # lines_sub = []
+        # words = sub_text.split()
+        # line = ""
+        # for word in words:
+        #     test = f"{line} {word}".strip()
+        #     try:
+        #         w = pdfmetrics.stringWidth(test, "Times-Bold", track_font_size)
+        #     except:
+        #         w = len(test) * track_font_size * 0.6
+        #     if w <= max_width:
+        #         line = test
+        #     else:
+        #         if line:
+        #             lines_sub.append(line)
+        #         line = word
+        # if line:
+        #     lines_sub.append(line)
+        # lines_sub = lines_sub[:2]
+        #
+        # c.setFont("Times-Bold", track_font_size)
+        # line_height = track_font_size * 1.4
+        # for j, line in enumerate(lines_sub):
+        #     try:
+        #         tw = pdfmetrics.stringWidth(line, "Times-Bold", track_font_size)
+        #     except:
+        #         tw = len(line) * track_font_size * 0.6
+        #     c.drawString(center_x - tw / 2, y_sub - j * line_height, line)
 
         c.restoreState()
 
