@@ -1,7 +1,6 @@
 import os
 import sys
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
 import openpyxl
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
