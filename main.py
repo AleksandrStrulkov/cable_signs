@@ -1,6 +1,59 @@
 import os
 import sys
+import shutil
+
+print("=== DIAGNOSTICS START ===")
+
+# ДЕТАЛЬНАЯ ДИАГНОСТИКА
+if hasattr(sys, '_MEIPASS'):
+    base_path = sys._MEIPASS
+    print(f"Base path: {base_path}")
+    
+    # Проверим все возможные расположения
+    possible_paths = [
+        os.path.join(base_path, 'tk', 'tk8.6'),
+        os.path.join(base_path, 'tcl', 'tk8.6'),
+        os.path.join(base_path, 'tk8.6'),
+    ]
+    
+    for path in possible_paths:
+        exists = os.path.exists(path)
+        print(f"Path: {path} - exists: {exists}")
+        if exists:
+            files = os.listdir(path)
+            print(f"  Files: {len(files)}")
+            if 'tk.tcl' in files:
+                print("  ✅ tk.tcl FOUND!")
+    
+    # Если tk8.6 в корне как tk/tk8.6, перемещаем
+    tk_root_path = os.path.join(base_path, 'tk', 'tk8.6')
+    tk_correct_path = os.path.join(base_path, 'tcl', 'tk8.6')
+    
+    if os.path.exists(tk_root_path):
+        print(f"Found tk8.6 at: {tk_root_path}")
+        if not os.path.exists(tk_correct_path):
+            os.makedirs(os.path.dirname(tk_correct_path), exist_ok=True)
+            shutil.copytree(tk_root_path, tk_correct_path)
+            print(f"✅ Copied tk8.6 to: {tk_correct_path}")
+    
+    # Устанавливаем пути
+    os.environ['TCL_LIBRARY'] = os.path.join(base_path, 'tcl', 'tcl8.6')
+    os.environ['TK_LIBRARY'] = os.path.join(base_path, 'tcl', 'tk8.6')
+    
+    print(f"Final TCL_LIBRARY: {os.environ['TCL_LIBRARY']} - exists: {os.path.exists(os.environ['TCL_LIBRARY'])}")
+    print(f"Final TK_LIBRARY: {os.environ['TK_LIBRARY']} - exists: {os.path.exists(os.environ['TK_LIBRARY'])}")
+
+print("=== DIAGNOSTICS END ===")
+
+
 import tkinter as tk
+
+print("✅ Tkinter imported successfully!")
+    
+with open('debug_log.txt', 'a') as f:
+    f.write("Tkinter imported successfully\n")
+
+#import tkinter as tk
 import openpyxl
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -337,9 +390,9 @@ class CableLabelApp:
                             list_idx[i] = f"{i + 1} ({headers[idx]})"
                 messagebox.showerror(
                         "Ошибка", "Не найдены необходимые столбцы!"
-                                  "\nПроверьте Excel файл и повторите попытку.\n"
-                                  f"\nНайденные столбцы:\n {list_idx}\n"
-                                  f"Не забудьте сохранить файл после редактирования!"
+                                "\nПроверьте Excel файл и повторите попытку.\n"
+                                f"\nНайденные столбцы:\n {list_idx}\n"
+                                f"Не забудьте сохранить файл после редактирования!"
                 )
                 return
 
@@ -666,3 +719,6 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = CableLabelApp(root)
     root.mainloop()
+        
+
+
