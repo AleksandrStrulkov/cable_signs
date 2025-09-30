@@ -1,21 +1,22 @@
 import os
 import sys
 import shutil
+import logging
+from datetime import datetime
 
-print("=== DIAGNOSTICS START ===")
 
 # ДЕТАЛЬНАЯ ДИАГНОСТИКА
 if hasattr(sys, '_MEIPASS'):
     base_path = sys._MEIPASS
     print(f"Base path: {base_path}")
-    
+
     # Проверим все возможные расположения
     possible_paths = [
-        os.path.join(base_path, 'tk', 'tk8.6'),
-        os.path.join(base_path, 'tcl', 'tk8.6'),
-        os.path.join(base_path, 'tk8.6'),
+            os.path.join(base_path, 'tk', 'tk8.6'),
+            os.path.join(base_path, 'tcl', 'tk8.6'),
+            os.path.join(base_path, 'tk8.6'),
     ]
-    
+
     for path in possible_paths:
         exists = os.path.exists(path)
         print(f"Path: {path} - exists: {exists}")
@@ -24,36 +25,31 @@ if hasattr(sys, '_MEIPASS'):
             print(f"  Files: {len(files)}")
             if 'tk.tcl' in files:
                 print("  ✅ tk.tcl FOUND!")
-    
+
     # Если tk8.6 в корне как tk/tk8.6, перемещаем
     tk_root_path = os.path.join(base_path, 'tk', 'tk8.6')
     tk_correct_path = os.path.join(base_path, 'tcl', 'tk8.6')
-    
+
     if os.path.exists(tk_root_path):
         print(f"Found tk8.6 at: {tk_root_path}")
         if not os.path.exists(tk_correct_path):
             os.makedirs(os.path.dirname(tk_correct_path), exist_ok=True)
             shutil.copytree(tk_root_path, tk_correct_path)
             print(f"✅ Copied tk8.6 to: {tk_correct_path}")
-    
+
     # Устанавливаем пути
     os.environ['TCL_LIBRARY'] = os.path.join(base_path, 'tcl', 'tcl8.6')
     os.environ['TK_LIBRARY'] = os.path.join(base_path, 'tcl', 'tk8.6')
-    
+
     print(f"Final TCL_LIBRARY: {os.environ['TCL_LIBRARY']} - exists: {os.path.exists(os.environ['TCL_LIBRARY'])}")
     print(f"Final TK_LIBRARY: {os.environ['TK_LIBRARY']} - exists: {os.path.exists(os.environ['TK_LIBRARY'])}")
 
-print("=== DIAGNOSTICS END ===")
-
-
 import tkinter as tk
 
-print("✅ Tkinter imported successfully!")
-    
 with open('debug_log.txt', 'a') as f:
     f.write("Tkinter imported successfully\n")
 
-#import tkinter as tk
+# import tkinter as tk
 import openpyxl
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -62,6 +58,58 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 # Для кастомной темы
 from tkinter import ttk, filedialog, messagebox
+
+# Настройка логирования в файл И в консоль
+log_filename = f"cable_signs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+
+
+class ColoredFormatter(logging.Formatter):
+    """Добавляет цвета в консольные логи"""
+    COLORS = {
+            'INFO': '\033[94m',  # Синий
+            'WARNING': '\033[93m',  # Желтый
+            'ERROR': '\033[91m',  # Красный
+            'CRITICAL': '\033[91m',  # Красный
+            'RESET': '\033[0m'  # Сброс
+    }
+
+    def format(self, record):
+        log_message = super().format(record)
+        if record.levelname in self.COLORS:
+            return f"{self.COLORS[record.levelname]}{log_message}{self.COLORS['RESET']}"
+        return log_message
+
+
+# Создаем логгер
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# Цветной формат для консоли
+colored_formatter = ColoredFormatter('%(levelname)s: %(message)s')
+
+# Обычный формат для файла
+file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+# Файловый обработчик
+file_handler = logging.FileHandler('app.log', encoding='utf-8')
+file_handler.setFormatter(file_formatter)
+
+# Консольный обработчик
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(colored_formatter)
+
+# Добавляем оба обработчика
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+
+# Логируем запуск
+logging.info("=== Cable Signs Application Started ===")
+logging.info(f"Working directory: {os.getcwd()}")
+
+# Теперь все логи будут и в файл, и в консоль
+logging.info("This message goes to both file and console")
+logging.warning("This warning is visible in console")
+logging.error("Errors also appear in console")
 
 # Указываем Python, где искать Tcl/Tk внутри виртуального окружения
 base_prefix = getattr(sys, 'base_prefix', sys.prefix)  # Получаем путь к окружению
@@ -93,7 +141,7 @@ FONT_LENGTH = 14  # Размер шрифта для length
 
 MIN_FONT_SIZE = 10  # Минимальный размер шрифта при уменьшении
 PRINTER_OFFSET_X = 0.0 * mm  # Компенсация смещения принтера на обратной стороне по оси X
-PRINTER_OFFSET_Y = 0.0 * mm # Компенсация смещения принтера на обратной стороне по оси Y
+PRINTER_OFFSET_Y = 0.0 * mm  # Компенсация смещения принтера на обратной стороне по оси Y
 # Запрещённые символы в именах файлов Windows
 INVALID_FILENAME_CHARS = r'<>:"/\\|?*'
 
@@ -128,9 +176,11 @@ def find_column(headers, *names):
     :return: индекс столбца или None
     """
     lower_headers = [h.lower() if h else "" for h in headers]
+
     for name in names:
         if name.lower() in lower_headers:
             return lower_headers.index(name.lower())
+
     return None
 
 
@@ -150,9 +200,9 @@ class CableLabelApp:
         self.root = root
         # --- Настройка тёмной темы ---
         self.root.tk_setPalette(
-            background='#2e2e2e', foreground='white',
-            activeBackground='#4a4a4a', activeForeground='white'
-            )
+                background='#2e2e2e', foreground='white',
+                activeBackground='#4a4a4a', activeForeground='white'
+        )
         # Переменная для толщины контура
         self.line_width_var = tk.StringVar(value="5.0")
         self._line_width = 5.0  # внутреннее значение в мм
@@ -200,7 +250,8 @@ class CableLabelApp:
 
         # Заголовок
         ttk.Label(frame, text="Генератор бирок под маркировку трасс кабеля", font=("Arial", 14, "bold")).grid(
-            row=0, column=0, columnspan=3, pady=(0, 15))
+                row=0, column=0, columnspan=3, pady=(0, 15)
+        )
 
         # Excel файл
         ttk.Label(frame, text="Excel файл:").grid(row=1, column=0, sticky="w", pady=5)
@@ -221,64 +272,63 @@ class CableLabelApp:
 
         # Справка
         help_text = (
-            "1. Создайте файл Excel с колонками:\n"
-            "_______________________________________\n"
-            "| Подсистема | Трасса | Кабель | Длина | Кол-во |\n"
-            "¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯\n"
-            "Где 'Кол-во' — количество бирок на трассу.\n\n"
-            "2. Загрузите файл Excel и выберите папку для сохранения.\n\n"
-            "2. Укажите имя выходного файла.\n\n"
-            "3. Нажмите 'Создать PDF'."
+                "1. Создайте файл Excel с колонками:\n"
+                "_______________________________________\n"
+                "| Подсистема | Трасса | Кабель | Длина | Кол-во |\n"
+                "¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯\n"
+                "Где 'Кол-во' — количество бирок на трассу.\n\n"
+                "2. Загрузите файл Excel и выберите папку для сохранения.\n\n"
+                "2. Укажите имя выходного файла.\n\n"
+                "3. Нажмите 'Создать PDF'."
         )
         help_label = ttk.Label(
-            frame,
-            text=help_text,
-            font=("Arial", 9),
-            foreground=self.help_color,
-            relief="flat",
-            anchor="center",
-            justify="left",
-            wraplength=460
+                frame,
+                text=help_text,
+                font=("Arial", 9),
+                foreground=self.help_color,
+                relief="flat",
+                anchor="center",
+                justify="left",
+                wraplength=460
         )
         help_label.grid(row=4, column=0, columnspan=3, pady=(15, 10), sticky="ew")
-
 
         # Толщина контура
         ttk.Label(frame, text="Толщина контура (мм):").grid(row=5, column=0, sticky="w", pady=5)
         ttk.Entry(
-            frame,
-            textvariable=self.line_width_var,
-            width=8,
-            validate='key',
-            validatecommand=(self.root.register(self.validate_float_input), '%P')
+                frame,
+                textvariable=self.line_width_var,
+                width=8,
+                validate='key',
+                validatecommand=(self.root.register(self.validate_float_input), '%P')
         ).grid(row=5, column=1, sticky="w", padx=(0, 10))
 
         # Подсказка
         width_hint = ttk.Label(
-            frame,
-            text="Рекомендуется: 1.8–6.0 мм",
-            font=("Arial", 8),
-            foreground="gray"
+                frame,
+                text="Рекомендуется: 1.8–6.0 мм",
+                font=("Arial", 8),
+                foreground="gray"
         )
         width_hint.grid(row=6, column=0, columnspan=4, sticky="w", pady=(0, 5))
 
         # --- Компенсация принтера ---
         ttk.Label(frame, text="Компенсация печати по оси X (мм):").grid(row=7, column=0, sticky="w", pady=(15, 5))
         ttk.Entry(
-            frame,
-            textvariable=self.printer_offset_x,
-            width=8,
-            validate='key',
-            validatecommand=validate_cmd
+                frame,
+                textvariable=self.printer_offset_x,
+                width=8,
+                validate='key',
+                validatecommand=validate_cmd
         ).grid(row=7, column=1, sticky="w", padx=(0, 10))
 
         ttk.Label(frame, text="Компенсация печати по оси Y (мм):").grid(row=8, column=0, sticky="w", pady=5)
         ttk.Entry(
-            frame,
-            textvariable=self.printer_offset_y,
-            width=8,
-            validate='key',
-            validatecommand=validate_cmd
+                frame,
+                textvariable=self.printer_offset_y,
+                width=8,
+                validate='key',
+                validatecommand=validate_cmd
         ).grid(row=8, column=1, sticky="w", padx=(0, 10))
 
         # Подпишемся на изменения
@@ -287,10 +337,10 @@ class CableLabelApp:
 
         # Подсказка
         offset_hint = ttk.Label(
-            frame,
-            text="Смещение применяется только на обратной стороне\nИспользуйте переплет по длинному краю ",
-            font=("Arial", 8),
-            foreground="gray"
+                frame,
+                text="Смещение применяется только на обратной стороне\nИспользуйте переплет по длинному краю ",
+                font=("Arial", 8),
+                foreground="gray"
         )
         offset_hint.grid(row=9, column=0, columnspan=4, sticky="w", pady=(0, 10))
 
@@ -303,12 +353,12 @@ class CableLabelApp:
 
         # Подпись компании — в левый нижний угол
         copyright_label = tk.Label(
-            frame,
-            text='@2025 ООО "ДГС" УГПР №2',
-            font=("Arial", 7),
-            fg="#468000",        # Тёмно-зелёный цвет
-            bg="#2e2e2e",        # Совпадает с фоном (для тёмной темы)
-            anchor="w"
+                frame,
+                text='@2025 ООО "ДГС" УГПР №2',
+                font=("Arial", 7),
+                fg="#468000",  # Тёмно-зелёный цвет
+                bg="#2e2e2e",  # Совпадает с фоном (для тёмной темы)
+                anchor="w"
         )
         copyright_label.grid(row=12, column=0, columnspan=2, sticky="w", pady=(10, 0))
 
@@ -352,12 +402,23 @@ class CableLabelApp:
         file = filedialog.askopenfilename(title="Выберите Excel", filetypes=[("Excel", "*.xlsx")])
         if file:
             self.input_file.set(file)
+            # Получаем информацию о файле
+            file_size = os.path.getsize(file)  # Размер в байтах
+            file_time = datetime.fromtimestamp(
+                    os.path.getmtime(file)
+            ).strftime('%Y-%m-%d %H:%M:%S')  # Время изменения
+
+            logging.info(f"📁 Файл загружен успешно с пути: {file}")
+            logging.info(f"📊 Размер: {file_size} байт")
+            logging.info(f"🕒 Изменен: {file_time}")
 
     def browse_output(self):
         """Выбор папки для сохранения"""
         folder = filedialog.askdirectory(title="Выберите папку")
         if folder:
             self.output_dir.set(folder)
+            # Получаем информацию о файле
+            logger.info(f"📁 Выбрана папка для сохранения по пути: {folder}")
 
     def generate(self):
         """Основная логика генерации PDF"""
@@ -366,6 +427,7 @@ class CableLabelApp:
 
         if not input_path or not output_dir:
             messagebox.showerror("Ошибка", "Укажите файл и папку!")
+            logger.error(f"🚨 Ошибка: Не указан файл или папка для сохранения.\n")
             return
 
         try:
@@ -381,6 +443,20 @@ class CableLabelApp:
             quantity_idx = find_column(headers, "quantity", "Количество", "Кол-во")
             list_idx = [system_idx, track_idx, cable_idx, length_idx, quantity_idx]
 
+            headers_not_none = [item for item in headers if item is not None]
+            border = '-'
+            border_headers_not_none = 0 + 28
+            for header in headers_not_none:
+                len_header = len(header)
+                border_headers_not_none += len_header
+
+            logging.info(
+                f"🚀 Загруженный файл excel имеет заголовки:\n"
+                f"{border * border_headers_not_none}\n"
+                f"| {headers_not_none} |\n"
+                f"{border * border_headers_not_none}\n"
+                )
+
             if None in (system_idx, track_idx, cable_idx, length_idx, quantity_idx):
                 if None in list_idx:
                     for i, idx in enumerate(list_idx):
@@ -390,10 +466,12 @@ class CableLabelApp:
                             list_idx[i] = f"{i + 1} ({headers[idx]})"
                 messagebox.showerror(
                         "Ошибка", "Не найдены необходимые столбцы!"
-                                "\nПроверьте Excel файл и повторите попытку.\n"
-                                f"\nНайденные столбцы:\n {list_idx}\n"
-                                f"Не забудьте сохранить файл после редактирования!"
+                                  "\nПроверьте Excel файл и повторите попытку.\n"
+                                  f"\nНайденные столбцы:\n {list_idx}\n"
+                                  f"Не забудьте сохранить файл после редактирования!"
                 )
+                logging.error(f"🚨 Ошибка: Не найдены необходимые столбцы!\n")
+
                 return
 
             data = []
@@ -425,18 +503,24 @@ class CableLabelApp:
             raw_name = self.output_name.get().strip()
             if not raw_name:
                 messagebox.showwarning("Предупреждение", "Введите имя файла.")
+                logger.error(f"🚨 Ошибка: Имя файла пустое.")
                 return
 
             clean_name = self.sanitize_filename(raw_name)
+            logger.info(f"📝 Задано имя выходного файла: {clean_name + '.pdf'}")
 
             if not clean_name:
                 messagebox.showerror("Ошибка", "Имя файла пустое после очистки.")
+                logging.error(f"🚨 Ошибка: Имя файла пустое после очистки.")
                 return
 
             if not clean_name.endswith(".pdf"):
                 clean_name += ".pdf"
 
             output_path = os.path.join(output_dir, clean_name)
+            # Заменяем обратные слеши на прямые
+            normalized_path = output_path.replace('\\', '/')
+            logger.info(f"📝 Выходной файл pdf сохранен по пути: {normalized_path}")
 
             # Проверяем, можно ли создать файл
             try:
@@ -445,6 +529,7 @@ class CableLabelApp:
                 os.remove(output_path)  # чистим тестовый файл
             except Exception as e:
                 messagebox.showerror("Ошибка", f"Невозможно создать файл:\n{clean_name}\n\n{str(e)}")
+                logger.error(f"🚨 Ошибка при создании файла: {str(e)}")
                 return
 
             c = canvas.Canvas(output_path, pagesize=A4)
@@ -471,9 +556,11 @@ class CableLabelApp:
 
             c.save()
             messagebox.showinfo("Готово", f"PDF сохранён:\n{output_path}")
+            logger.info(f"📝 Выходной файл pdf сохранен по пути: {normalized_path}")
 
         except Exception as e:
             messagebox.showerror("Ошибка", f"Ошибка: {str(e)}")
+            logger.error(f"🚨 Ошибка: {str(e)}")
 
     def draw_page(self, c, data, start_index, side):
         """
@@ -668,7 +755,7 @@ class CableLabelApp:
             max_chars_per_line = 33  # При меньшем шрифте — можно больше символов
         elif side == 'front' and len(sub_text) >= 20:
             track_font_size = 11.5
-            max_chars_per_line = 39 # При меньшем шрифте — можно больше символов
+            max_chars_per_line = 39  # При меньшем шрифте — можно больше символов
         else:
             track_font_size = sub_font_size  # 14
 
@@ -700,9 +787,9 @@ class CableLabelApp:
             # Fallback: улучшенная оценка с коэффициентом для кириллицы
             # Коэффициент 0.65 вместо 0.55 — лучше для широких букв
             estimated_width_per_char = {
-                            'Ш': 1.2, 'Щ': 1.2, 'Ж': 1.15, 'Д': 1.1, 'П': 1.05,
-                            'А': 0.9, 'В': 0.95, 'Е': 0.9, 'К': 0.95, 'Х': 0.9
-                    }
+                    'Ш': 1.2, 'Щ': 1.2, 'Ж': 1.15, 'Д': 1.1, 'П': 1.05,
+                    'А': 0.9, 'В': 0.95, 'Е': 0.9, 'К': 0.95, 'Х': 0.9
+            }
             total_width = 0
             for char in line.upper():
                 total_width += estimated_width_per_char.get(char, 1.0)
@@ -719,6 +806,3 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = CableLabelApp(root)
     root.mainloop()
-        
-
-
