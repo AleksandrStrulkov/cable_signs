@@ -41,13 +41,13 @@ if hasattr(sys, '_MEIPASS'):
     os.environ['TCL_LIBRARY'] = os.path.join(base_path, 'tcl', 'tcl8.6')
     os.environ['TK_LIBRARY'] = os.path.join(base_path, 'tcl', 'tk8.6')
 
-    print(f"Final TCL_LIBRARY: {os.environ['TCL_LIBRARY']} - exists: {os.path.exists(os.environ['TCL_LIBRARY'])}")
-    print(f"Final TK_LIBRARY: {os.environ['TK_LIBRARY']} - exists: {os.path.exists(os.environ['TK_LIBRARY'])}")
+    # print(f"Final TCL_LIBRARY: {os.environ['TCL_LIBRARY']} - exists: {os.path.exists(os.environ['TCL_LIBRARY'])}")
+    # print(f"Final TK_LIBRARY: {os.environ['TK_LIBRARY']} - exists: {os.path.exists(os.environ['TK_LIBRARY'])}")
 
 import tkinter as tk
 
-with open('debug_log.txt', 'a') as f:
-    f.write("Tkinter imported successfully\n")
+# with open('debug_log.txt', 'a') as f:
+#     f.write("Tkinter imported successfully\n")
 
 # import tkinter as tk
 import openpyxl
@@ -127,14 +127,14 @@ except:
     pass  # Если не найден — используем fallback (стандартный жирный шрифт)
 
 # === ГЛОБАЛЬНЫЕ ПАРАМЕТРЫ ===
-TRIANGLE_BASE = 60 * mm  # Ширина основания треугольника
-TRIANGLE_HEIGHT = 49 * mm  # Высота треугольника
+TRIANGLE_BASE = 60 * mm        # Ширина основания — 60 мм (по ГОСТ)
+TRIANGLE_HEIGHT = 55 * mm      # Высота — 55 мм (по ГОСТ)
 PAGE_WIDTH, PAGE_HEIGHT = A4  # Размер листа A4
 
 MAX_COLS = 5  # Количество треугольников в ряду
 MAX_ROWS = 5  # Количество рядов
 
-FONT_SYSTEM = 18  # Размер шрифта для system
+FONT_SYSTEM = 24  # Размер шрифта для system
 FONT_TRACK = 14  # Размер шрифта для track
 FONT_CABLE = 16  # Размер шрифта для cable (чуть больше)
 FONT_LENGTH = 14  # Размер шрифта для length
@@ -234,6 +234,7 @@ class CableLabelApp:
         """Заменяет запрещённые символы на _"""
         for char in INVALID_FILENAME_CHARS:
             name = name.replace(char, '_')
+            logger.info(f"🧹 Заменены запрещенные символы в имени файла: {char} на {name}")
         return name.strip()
 
     def reset_filename(self):
@@ -572,7 +573,7 @@ class CableLabelApp:
         """
         col_step = TRIANGLE_BASE / 2
         x_centers_original = [45 * mm, 75 * mm, 105 * mm, 135 * mm, 165 * mm]
-        Y_START = 76.5 * mm
+        Y_START = 70 * mm # Начальная Y координата первого ряда
 
         # Компенсация принтера — только на обратной стороне
         shift_x = self._offset_x * mm if side == 'back' else 0
@@ -599,7 +600,7 @@ class CableLabelApp:
                 center_x = center_x_base + shift_x
 
             # y_base = Y_START + row * TRIANGLE_HEIGHT
-            y_base = Y_START + row * TRIANGLE_HEIGHT + shift_y
+            y_base = Y_START + row * TRIANGLE_HEIGHT
             is_upside_down = col % 2 == 1
 
             if side == 'front':
@@ -621,57 +622,48 @@ class CableLabelApp:
 
             count += 1
 
-    def draw_triangle(
-            self, c, center_x, y_base, upside_down, main_text, sub_text,
-            main_font_size, sub_font_size, side
-    ):
+    def draw_triangle(self, c, center_x, y_base, upside_down, main_text, sub_text,
+                      main_font_size, sub_font_size, side):
         """
-        Рисует один треугольник с текстом.
+        Рисует один треугольник 60×55 мм по ГОСТ.
         :param c: canvas
         :param center_x: X центра основания
-        :param y_base: Y основания (зависит от ориентации)
-        :param upside_down: True если треугольник остриём вниз
-        :param main_text: основной текст (system/cable)
-        :param sub_text: подзаголовок (track/length)
+        :param y_base: Y основания
+        :param upside_down: True если остриём вниз
+        :param main_text: основной текст
+        :param sub_text: подзаголовок
         :param main_font_size: размер шрифта основного текста
         :param sub_font_size: размер шрифта подзаголовка
         :param side: 'front' или 'back'
         """
-
-        if not main_text.strip() and not sub_text.strip():
-            return
-
         base = TRIANGLE_BASE
         height = TRIANGLE_HEIGHT
         x_left = center_x - base / 2
         x_right = center_x + base / 2
 
-        # Определяем вершины треугольника
+        # Вершины треугольника (по ГОСТ: основание 60 мм, высота 55 мм)
         if upside_down:
             points = [(x_left, y_base), (x_right, y_base), (center_x, y_base - height)]
         else:
             points = [(x_left, y_base - height), (x_right, y_base - height), (center_x, y_base)]
 
-        # Рисуем контур
+        # Контур
         c.setLineWidth(self._line_width)
-
         c.setStrokeColorRGB(0, 0, 0)
-        c.lines(
-                [
-                        (points[0][0], points[0][1], points[1][0], points[1][1]),
-                        (points[1][0], points[1][1], points[2][0], points[2][1]),
-                        (points[2][0], points[2][1], points[0][0], points[0][1])
-                ]
-        )
+        c.lines([
+            (points[0][0], points[0][1], points[1][0], points[1][1]),
+            (points[1][0], points[1][1], points[2][0], points[2][1]),
+            (points[2][0], points[2][1], points[0][0], points[0][1])
+        ])
 
-        # Относительные смещения текста от основания
-        dy_main = height * 0.35  # Основной текст ближе к центру
-        dy_sub = height * 0.1  # Подзаголовок у основания
+        # Относительные позиции (в долях от высоты)
+        dy_main = height * 0.38  # Основной текст — чуть выше центра
+        dy_sub = height * 0.1   # Подзаголовок — у основания
 
         c.saveState()
 
         if upside_down:
-            # Поворачиваем вокруг центра основания
+            # Поворачиваем вокруг основания
             c.translate(center_x, y_base)
             c.rotate(180)
             c.translate(-center_x, -y_base)
@@ -682,13 +674,10 @@ class CableLabelApp:
             y_main = base_y + dy_main
             y_sub = base_y + dy_sub
 
-        # --- ОСНОВНОЙ ТЕКСТ (system или cable) ---
-        lines = []
-
+        # --- ОСНОВНОЙ ТЕКСТ ---
         if side == 'back':  # Это обратная сторона — cable
             parts = split_cable_text(main_text)
             line1, line2 = parts[0], parts[1]
-            lines = [line1, line2]
 
             # Шрифт для первой строки — всегда FONT_CABLE (16)
             fs_line1 = FONT_CABLE
@@ -701,27 +690,28 @@ class CableLabelApp:
             else:
                 fs_line2 = FONT_CABLE  # 16
 
-            # Позиции строк (ваш идеальный центр)
-            y_upper = y_main - fs_line1 * 0.5
-            y_lower = y_main + fs_line2 * 0.5
-            y_positions = [y_lower, y_upper]  # первая строка выше, вторая ниже
+            # Позиции строк: первая — чуть выше центра, вторая — чуть ниже
+            y_upper = y_main - fs_line1 * 0.5  # выше
+            y_lower = y_main + fs_line2 * 0.5  # ниже
+            y_positions = [y_lower, y_upper]  # ⚠️ Важно: сначала верхняя, потом нижняя
 
-            # Рисуем каждую строку отдельно
+            # Рисуем первую строку
             c.setFont("Times-Bold", fs_line1)
             try:
                 tw1 = pdfmetrics.stringWidth(line1, "Times-Bold", fs_line1)
             except:
                 tw1 = len(line1) * fs_line1 * 0.6
             x_pos1 = center_x - tw1 / 2
-            c.drawString(x_pos1, y_positions[0], line1)  # первая строка
+            c.drawString(x_pos1, y_positions[0], line1)  # Первая строка — выше
 
+            # Рисуем вторую строку
             c.setFont("Times-Bold", fs_line2)
             try:
                 tw2 = pdfmetrics.stringWidth(line2, "Times-Bold", fs_line2)
             except:
                 tw2 = len(line2) * fs_line2 * 0.6
             x_pos2 = center_x - tw2 / 2
-            c.drawString(x_pos2, y_positions[1], line2)  # вторая строка
+            c.drawString(x_pos2, y_positions[1], line2)  # Вторая строка — ниже
 
         else:  # Лицевая сторона — system
             lines = [main_text]
@@ -746,58 +736,60 @@ class CableLabelApp:
                 c.drawString(x_pos, y_pos, line)
 
         # --- ПОДЗАГОЛОВОК (track или length) ---
-        max_chars_per_line = 28  # Подобрано под 60 мм и font=14
-        if side == 'front' and len(sub_text) == 18:
-            track_font_size = 13.5
-            max_chars_per_line = 33  # При меньшем шрифте — можно больше символов
-        elif side == 'front' and len(sub_text) == 19:
-            track_font_size = 13
-            max_chars_per_line = 33  # При меньшем шрифте — можно больше символов
-        elif side == 'front' and len(sub_text) >= 20:
-            track_font_size = 11.5
-            max_chars_per_line = 39  # При меньшем шрифте — можно больше символов
+        track_font_size = sub_font_size  # 14 pt
+        line_spacing = track_font_size * 1.1  # компактный отступ
+
+        if side == 'front':
+            try:
+                full_width = pdfmetrics.stringWidth(sub_text, "Times-Bold", track_font_size)
+                max_width = TRIANGLE_BASE * 0.9
+                fits_in_one_line = full_width <= max_width
+            except:
+                fits_in_one_line = len(sub_text) <= 30
+
+            if not fits_in_one_line and '/' in sub_text:
+                parts = sub_text.split('/', 1)
+                line1 = parts[0] + '/'     # слеш остаётся в первой
+                line2 = parts[1].strip()
+                lines = [line1, line2]
+            else:
+                lines = [sub_text]
+
         else:
-            track_font_size = sub_font_size  # 14
+            lines = [sub_text]
 
-        # Разбивка на 2 строки по длине
-        max_len = 30 if track_font_size > 12 else 38
-        line1 = sub_text[:max_len].strip()
-        line2 = sub_text[max_len:max_len * 2].strip()
+        # Ограничиваем двумя строками
+        lines = lines[:2]
 
-        lines = []
-        if line1:
-            lines.append(line1)
-        if line2:
-            lines.append(line2)
-
-        # Устанавливаем шрифт
         c.setFont("Times-Bold", track_font_size)
 
-        line_height = track_font_size * 1.5
+        # Базовая Y: где должна быть одна строка
+        y_single = y_sub + height * 0.03  # чуть выше края
+
+        # Если две строки — рисуем их так, чтобы НИЖНЯЯ была на уровне y_single
+        if len(lines) == 2:
+            y_pos_1 = y_single - line_spacing  # верхняя
+            y_pos_2 = y_single                 # нижняя — как будто одна строка
+            y_positions = [y_pos_2, y_pos_1]   # первая выше, вторая ниже
+        else:
+            y_positions = [y_single]
 
         for j, line in enumerate(lines):
             if not line.strip():
                 continue
-
-        # ⚡️ Реальная ширина через stringWidth
-        try:
-            tw = pdfmetrics.stringWidth(line, "Times-Bold", track_font_size)
-            # print(f"📏 Точная ширина: '{line}' → {tw:.1f} pt")
-        except:
-            # Fallback: улучшенная оценка с коэффициентом для кириллицы
-            # Коэффициент 0.65 вместо 0.55 — лучше для широких букв
-            estimated_width_per_char = {
+            try:
+                tw = pdfmetrics.stringWidth(line, "Times-Bold", track_font_size)
+            except:
+                estimated_width_per_char = {
                     'Ш': 1.2, 'Щ': 1.2, 'Ж': 1.15, 'Д': 1.1, 'П': 1.05,
                     'А': 0.9, 'В': 0.95, 'Е': 0.9, 'К': 0.95, 'Х': 0.9
-            }
-            total_width = 0
-            for char in line.upper():
-                total_width += estimated_width_per_char.get(char, 1.0)
-            tw = total_width * track_font_size * 0.58
+                }
+                total_width = sum(estimated_width_per_char.get(c.upper(), 1.0) for c in line)
+                tw = total_width * track_font_size * 0.58
 
-        x_pos = center_x - tw / 2
-        y_pos = y_sub - j * line_height
-        c.drawString(x_pos, y_pos, line)
+            x_pos = center_x - tw / 2
+            y_pos = y_positions[j]
+            c.drawString(x_pos, y_pos, line)
 
         c.restoreState()
 
