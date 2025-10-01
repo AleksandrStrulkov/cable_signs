@@ -736,12 +736,12 @@ class CableLabelApp:
                 c.drawString(x_pos, y_pos, line)
 
         # --- ПОДЗАГОЛОВОК (track или length) ---
-        track_font_size = sub_font_size  # 14 pt
-        line_spacing = track_font_size * 1.1  # компактный отступ
+        base_font_size = sub_font_size  # 14 pt
+        line_spacing = base_font_size * 1.1
 
         if side == 'front':
             try:
-                full_width = pdfmetrics.stringWidth(sub_text, "Times-Bold", track_font_size)
+                full_width = pdfmetrics.stringWidth(sub_text, "Times-Bold", base_font_size)
                 max_width = TRIANGLE_BASE * 0.9
                 fits_in_one_line = full_width <= max_width
             except:
@@ -749,30 +749,40 @@ class CableLabelApp:
 
             if not fits_in_one_line and '/' in sub_text:
                 parts = sub_text.split('/', 1)
-                line1 = parts[0] + '/'     # слеш остаётся в первой
+                line1 = parts[0] + '/'
                 line2 = parts[1].strip()
                 lines = [line1, line2]
+
+                # Рассчитываем общий шрифт для ОБЕИХ строк
+                length_before_slash = len(parts[0])
+                if length_before_slash <= 15:
+                    track_font_size = 14.0
+                elif length_before_slash >= 19:
+                    track_font_size = 12.0
+                else:
+                    track_font_size = 14.0 - (length_before_slash - 15) * 1.0
             else:
                 lines = [sub_text]
+                track_font_size = base_font_size  # 14 pt
 
         else:
             lines = [sub_text]
+            track_font_size = base_font_size
 
-        # Ограничиваем двумя строками
         lines = lines[:2]
 
-        c.setFont("Times-Bold", track_font_size)
-
         # Базовая Y: где должна быть одна строка
-        y_single = y_sub + height * 0.03  # чуть выше края
+        y_single = y_sub + height * 0.05
 
-        # Если две строки — рисуем их так, чтобы НИЖНЯЯ была на уровне y_single
         if len(lines) == 2:
-            y_pos_1 = y_single - line_spacing  # верхняя
-            y_pos_2 = y_single                 # нижняя — как будто одна строка
-            y_positions = [y_pos_2, y_pos_1]   # первая выше, вторая ниже
+            y_pos_1 = y_single - line_spacing
+            y_pos_2 = y_single
+            y_positions = [y_pos_2, y_pos_1]  # первая выше, вторая ниже
         else:
             y_positions = [y_single]
+
+        # Рисуем все строки одним шрифтом
+        c.setFont("Times-Bold", track_font_size)
 
         for j, line in enumerate(lines):
             if not line.strip():
