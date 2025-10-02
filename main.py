@@ -58,6 +58,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 # Для кастомной темы
 from tkinter import ttk, filedialog, messagebox
 
+# === ЛОГИРОВАНИЕ ===
+LOG_FILE = "cable_labels.log"
 # Настройка логирования в файл И в консоль
 log_filename = f"cable_signs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 
@@ -90,7 +92,7 @@ colored_formatter = ColoredFormatter('%(levelname)s: %(message)s')
 file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
 # Файловый обработчик
-file_handler = logging.FileHandler('app.log', encoding='utf-8')
+file_handler = logging.FileHandler(LOG_FILE, encoding='utf-8')
 file_handler.setFormatter(file_formatter)
 
 # Консольный обработчик
@@ -122,7 +124,7 @@ os.environ["TK_LIBRARY"] = os.path.join(tcl_dir, "tk8.6")
 # Попробуем загрузить Times New Roman Bold для красивого шрифта
 try:
     pdfmetrics.registerFont(TTFont('Times-Bold', 'timesbd.ttf'))
-    logging.info("Loaded Times New Roman Bold")
+    logging.info("✅ Шрифт Times New Roman Bold успешно загружен")
 except:
     logging.error(f"Ошибка при загрузке шрифта Times New Roman Bold")
     pass  # Если не найден — используем fallback (стандартный жирный шрифт)
@@ -431,6 +433,8 @@ class CableLabelApp:
             logger.error(f"🚨 Ошибка: Не указан файл или папка для сохранения.\n")
             return
 
+        logger.info("=== Запуск генерации PDF ===")
+
         try:
             wb = openpyxl.load_workbook(input_path)
             ws = wb.active
@@ -459,6 +463,7 @@ class CableLabelApp:
             )
 
             if None in (system_idx, track_idx, cable_idx, length_idx, quantity_idx):
+                logger.error("❌ Ошибка: Не найдены необходимые столбцы в Excel!\n")
                 if None in list_idx:
                     for i, idx in enumerate(list_idx):
                         if idx is None:
@@ -471,7 +476,6 @@ class CableLabelApp:
                                   f"\nНайденные столбцы:\n {list_idx}\n"
                                   f"Не забудьте сохранить файл после редактирования!"
                 )
-                logging.error(f"🚨 Ошибка: Не найдены необходимые столбцы!\n")
 
                 return
 
@@ -494,6 +498,7 @@ class CableLabelApp:
                                     "length": length_val
                             }
                     )
+            logger.info(f"Обработано {len(data)} записей для печати")
 
             # Получаем имя файла от пользователя
             file_name = self.output_name.get().strip()
@@ -532,6 +537,13 @@ class CableLabelApp:
                 logger.error(f"🚨 Ошибка при создании файла: {str(e)}")
                 return
 
+            logger.info(f"⏳ Создание PDF .....")
+            logger.info(f"Количество этикеток: {len(data)}")
+            logger.info(
+                f"Настройки печати: Смещение по оси X = {self._offset_x:.1f} мм, "
+                f"Смещение по оси Y = {self._offset_y:.1f} мм, толщина контура = {self._line_width:.1f} мм"
+                )
+
             c = canvas.Canvas(output_path, pagesize=A4)
             c.setFont("Times-Bold", 12)
 
@@ -555,12 +567,12 @@ class CableLabelApp:
                 index += MAX_COLS * MAX_ROWS
 
             c.save()
+            logger.info(f"✅ Выходной файл успешно сохранен по пути: {normalized_path}")
             messagebox.showinfo("Готово", f"PDF сохранён:\n{output_path}")
-            logger.info(f"📝 Выходной файл pdf сохранен по пути: {normalized_path}")
 
         except Exception as e:
             messagebox.showerror("Ошибка", f"Ошибка: {str(e)}")
-            logger.error(f"🚨 Ошибка: {str(e)}")
+            logger.error(f"🚨 Ошибка при генерации:: {str(e)}")
 
     def draw_page(self, c, data, start_index, side):
         """
