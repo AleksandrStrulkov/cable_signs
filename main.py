@@ -4,7 +4,6 @@ import shutil
 import logging
 from datetime import datetime
 
-
 # ДЕТАЛЬНАЯ ДИАГНОСТИКА
 if hasattr(sys, '_MEIPASS'):
     base_path = sys._MEIPASS
@@ -35,7 +34,7 @@ if hasattr(sys, '_MEIPASS'):
         if not os.path.exists(tk_correct_path):
             os.makedirs(os.path.dirname(tk_correct_path), exist_ok=True)
             shutil.copytree(tk_root_path, tk_correct_path)
-            print(f"✅ Copied tk8.6 to: {tk_correct_path}")
+            # print(f"✅ Copied tk8.6 to: {tk_correct_path}")
 
     # Устанавливаем пути
     os.environ['TCL_LIBRARY'] = os.path.join(base_path, 'tcl', 'tcl8.6')
@@ -108,8 +107,8 @@ logging.info(f"Working directory: {os.getcwd()}")
 
 # Теперь все логи будут и в файл, и в консоль
 logging.info("This message goes to both file and console")
-logging.warning("This warning is visible in console")
-logging.error("Errors also appear in console")
+# logging.warning("This warning is visible in console")
+# logging.error("Errors also appear in console")
 
 # Указываем Python, где искать Tcl/Tk внутри виртуального окружения
 base_prefix = getattr(sys, 'base_prefix', sys.prefix)  # Получаем путь к окружению
@@ -123,12 +122,14 @@ os.environ["TK_LIBRARY"] = os.path.join(tcl_dir, "tk8.6")
 # Попробуем загрузить Times New Roman Bold для красивого шрифта
 try:
     pdfmetrics.registerFont(TTFont('Times-Bold', 'timesbd.ttf'))
+    logging.info("Loaded Times New Roman Bold")
 except:
+    logging.error(f"Ошибка при загрузке шрифта Times New Roman Bold")
     pass  # Если не найден — используем fallback (стандартный жирный шрифт)
 
 # === ГЛОБАЛЬНЫЕ ПАРАМЕТРЫ ===
-TRIANGLE_BASE = 60 * mm        # Ширина основания — 60 мм (по ГОСТ)
-TRIANGLE_HEIGHT = 55 * mm      # Высота — 55 мм (по ГОСТ)
+TRIANGLE_BASE = 60 * mm  # Ширина основания — 60 мм (по ГОСТ)
+TRIANGLE_HEIGHT = 55 * mm  # Высота — 55 мм (по ГОСТ)
 PAGE_WIDTH, PAGE_HEIGHT = A4  # Размер листа A4
 
 MAX_COLS = 5  # Количество треугольников в ряду
@@ -234,7 +235,6 @@ class CableLabelApp:
         """Заменяет запрещённые символы на _"""
         for char in INVALID_FILENAME_CHARS:
             name = name.replace(char, '_')
-            logger.info(f"🧹 Заменены запрещенные символы в имени файла: {char} на {name}")
         return name.strip()
 
     def reset_filename(self):
@@ -452,11 +452,11 @@ class CableLabelApp:
                 border_headers_not_none += len_header
 
             logging.info(
-                f"🚀 Загруженный файл excel имеет заголовки:\n"
-                f"{border * border_headers_not_none}\n"
-                f"| {headers_not_none} |\n"
-                f"{border * border_headers_not_none}\n"
-                )
+                    f"🚀 Загруженный файл excel имеет заголовки:\n"
+                    f"{border * border_headers_not_none}\n"
+                    f"| {headers_not_none} |\n"
+                    f"{border * border_headers_not_none}\n"
+            )
 
             if None in (system_idx, track_idx, cable_idx, length_idx, quantity_idx):
                 if None in list_idx:
@@ -521,7 +521,6 @@ class CableLabelApp:
             output_path = os.path.join(output_dir, clean_name)
             # Заменяем обратные слеши на прямые
             normalized_path = output_path.replace('\\', '/')
-            logger.info(f"📝 Выходной файл pdf сохранен по пути: {normalized_path}")
 
             # Проверяем, можно ли создать файл
             try:
@@ -573,7 +572,7 @@ class CableLabelApp:
         """
         col_step = TRIANGLE_BASE / 2
         x_centers_original = [45 * mm, 75 * mm, 105 * mm, 135 * mm, 165 * mm]
-        Y_START = 70 * mm # Начальная Y координата первого ряда
+        Y_START = 70 * mm  # Начальная Y координата первого ряда
 
         # Компенсация принтера — только на обратной стороне
         shift_x = self._offset_x * mm if side == 'back' else 0
@@ -622,8 +621,10 @@ class CableLabelApp:
 
             count += 1
 
-    def draw_triangle(self, c, center_x, y_base, upside_down, main_text, sub_text,
-                      main_font_size, sub_font_size, side):
+    def draw_triangle(
+            self, c, center_x, y_base, upside_down, main_text, sub_text,
+            main_font_size, sub_font_size, side
+            ):
         """
         Рисует один треугольник 60×55 мм по ГОСТ.
         :param c: canvas
@@ -650,15 +651,17 @@ class CableLabelApp:
         # Контур
         c.setLineWidth(self._line_width)
         c.setStrokeColorRGB(0, 0, 0)
-        c.lines([
-            (points[0][0], points[0][1], points[1][0], points[1][1]),
-            (points[1][0], points[1][1], points[2][0], points[2][1]),
-            (points[2][0], points[2][1], points[0][0], points[0][1])
-        ])
+        c.lines(
+                [
+                        (points[0][0], points[0][1], points[1][0], points[1][1]),
+                        (points[1][0], points[1][1], points[2][0], points[2][1]),
+                        (points[2][0], points[2][1], points[0][0], points[0][1])
+                ]
+        )
 
         # Относительные позиции (в долях от высоты)
         dy_main = height * 0.38  # Основной текст — чуть выше центра
-        dy_sub = height * 0.1   # Подзаголовок — у основания
+        dy_sub = height * 0.1  # Подзаголовок — у основания
 
         c.saveState()
 
@@ -720,7 +723,6 @@ class CableLabelApp:
             length = len(main_text)
             fs = max(16, 32 - length * 2) if length >= 5 else FONT_SYSTEM
 
-
             if fs < MIN_FONT_SIZE:
                 fs = MIN_FONT_SIZE
 
@@ -758,8 +760,7 @@ class CableLabelApp:
 
                 max_str = max(parts[0], parts[1])
                 max_ind = parts.index(max_str)
-                max_len = max(len(parts[0]), len(parts[1]))               
-
+                max_len = max(len(parts[0]), len(parts[1]))
 
                 # Определяем максимальную длину среди двух частей
                 len1, len2 = len(parts[0]), len(parts[1])
@@ -779,7 +780,7 @@ class CableLabelApp:
                     track_font_size = max(11.0, 14.0 - (max_len - 15) * 1.2)
                 else:  # max_ind == 1 и max_len < 18
                     track_font_size = max(10.0, 14.0 - (max_len - 15) * 0.5)
-                    
+
             else:
                 lines = [sub_text]
                 track_font_size = base_font_size  # 14 pt
@@ -810,8 +811,8 @@ class CableLabelApp:
                 tw = pdfmetrics.stringWidth(line, "Times-Bold", track_font_size)
             except:
                 estimated_width_per_char = {
-                    'Ш': 1.2, 'Щ': 1.2, 'Ж': 1.15, 'Д': 1.1, 'П': 1.05,
-                    'А': 0.9, 'В': 0.95, 'Е': 0.9, 'К': 0.95, 'Х': 0.9
+                        'Ш': 1.2, 'Щ': 1.2, 'Ж': 1.15, 'Д': 1.1, 'П': 1.05,
+                        'А': 0.9, 'В': 0.95, 'Е': 0.9, 'К': 0.95, 'Х': 0.9
                 }
                 total_width = sum(estimated_width_per_char.get(c.upper(), 1.0) for c in line)
                 tw = total_width * track_font_size * 0.58
