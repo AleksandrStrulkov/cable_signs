@@ -715,10 +715,11 @@ class CableLabelApp:
 
         else:  # Лицевая сторона — system
             lines = [main_text]
-            if len(main_text) >= 8:
-                fs = 16
-            else:
-                fs = FONT_SYSTEM
+
+            # Плавное уменьшение от 22 до 16 pt при росте длины
+            length = len(main_text)
+            fs = max(16, 32 - length * 2) if length >= 5 else FONT_SYSTEM
+
 
             if fs < MIN_FONT_SIZE:
                 fs = MIN_FONT_SIZE
@@ -753,14 +754,17 @@ class CableLabelApp:
                 line2 = parts[1].strip()
                 lines = [line1, line2]
 
-                # Рассчитываем общий шрифт для ОБЕИХ строк
-                length_before_slash = len(parts[0])
-                if length_before_slash <= 15:
+                # Определяем максимальную длину среди двух частей
+                max_len = max(len(parts[0]), len(parts[1]))               
+
+
+                # Плавное уменьшение шрифта для ОБЕИХ строк
+                if max_len <= 15:
                     track_font_size = 14.0
-                elif length_before_slash >= 19:
-                    track_font_size = 12.0
+                elif max_len >= 19:
+                    track_font_size = 11.0
                 else:
-                    track_font_size = 14.0 - (length_before_slash - 15) * 1.0
+                    track_font_size = 14.0 - (max_len - 15) * 1.2
             else:
                 lines = [sub_text]
                 track_font_size = base_font_size  # 14 pt
