@@ -772,14 +772,14 @@ class CableLabelApp:
                 elif max_len == 15:
                     track_font_size = 13.0
                 elif max_ind == 1 and max_len >= 18:
-                    track_font_size = 10.0  # вторая часть длинная — сильно уменьшаем
+                    track_font_size = 11.0  # вторая часть длинная — сильно уменьшаем
                 elif max_ind == 0 and max_len >= 18:
-                    track_font_size = 12.0  # первая часть длинная — умеренно уменьшаем
+                    track_font_size = 10.0  # первая часть длинная — умеренно уменьшаем
                 elif max_ind == 0:
                     track_font_size = max(11.0, 14.0 - (max_len - 15) * 1.2)
                 else:  # max_ind == 1 и max_len < 18
                     track_font_size = max(10.0, 14.0 - (max_len - 15) * 0.5)
-
+                    
             else:
                 lines = [sub_text]
                 track_font_size = base_font_size  # 14 pt
