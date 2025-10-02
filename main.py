@@ -743,7 +743,7 @@ class CableLabelApp:
         if side == 'front':
             try:
                 full_width = pdfmetrics.stringWidth(sub_text, "Times-Bold", base_font_size)
-                max_width = TRIANGLE_BASE * 0.9
+                max_width = TRIANGLE_BASE * 0.82
                 fits_in_one_line = full_width <= max_width
             except:
                 fits_in_one_line = len(sub_text) <= 30
