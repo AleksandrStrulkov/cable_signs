@@ -755,16 +755,31 @@ class CableLabelApp:
                 lines = [line1, line2]
 
                 # Определяем максимальную длину среди двух частей
+
+                max_str = max(parts[0], parts[1])
+                max_ind = parts.index(max_str)
                 max_len = max(len(parts[0]), len(parts[1]))               
 
 
+                # Определяем максимальную длину среди двух частей
+                len1, len2 = len(parts[0]), len(parts[1])
+                max_len = max(len1, len2)
+                max_ind = 0 if len1 >= len2 else 1
+
                 # Плавное уменьшение шрифта для ОБЕИХ строк
-                if max_len <= 15:
+                if max_len < 15:
                     track_font_size = 14.0
-                elif max_len >= 19:
-                    track_font_size = 11.0
-                else:
-                    track_font_size = 14.0 - (max_len - 15) * 1.2
+                elif max_len == 15:
+                    track_font_size = 13.0
+                elif max_ind == 1 and max_len >= 18:
+                    track_font_size = 10.0  # вторая часть длинная — сильно уменьшаем
+                elif max_ind == 0 and max_len >= 18:
+                    track_font_size = 12.0  # первая часть длинная — умеренно уменьшаем
+                elif max_ind == 0:
+                    track_font_size = max(11.0, 14.0 - (max_len - 15) * 1.2)
+                else:  # max_ind == 1 и max_len < 18
+                    track_font_size = max(10.0, 14.0 - (max_len - 15) * 0.5)
+
             else:
                 lines = [sub_text]
                 track_font_size = base_font_size  # 14 pt
